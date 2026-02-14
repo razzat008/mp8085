@@ -1,0 +1,21 @@
+8085 microprocessor notes:
+- seven 8-bit registers: A, B, C, D, E, H, L
+- A is the accumulator
+
+Flags(8-bit):
+S Z - AC - P - CY
+
+S-> sign flag | holds arithematic sign of the result
+
+Z-> zero flag | indicates whether the result of a mathematical/logical operation yields zero
+
+AC-> auxiliary carry flag
+	it holds the carry (half-carry) after 
+	addition or borrows after subtraction between bit positions 3 and 4 of 
+	the result in a BCD operation
+
+P -> parity flag | count of no of ones in a number
+
+C-> carry flag | indicates if carry/borrow is generated
+
+program status word: A + Flags
