@@ -44,7 +44,7 @@ impl CPU {
             program_counter: 0,
             stack_pointer: STACK_START,
             status: CPUFlags::default(),
-            mem: [0; 0xFFFF],
+            mem: [0; 0x0FFFF],
         }
     }
     pub fn reset(&mut self) {
@@ -54,11 +54,11 @@ impl CPU {
 
 #[derive(Debug)]
 pub enum AddressingMode {
-    ImmediateMode,
-    RegisterMode,
-    IndirectMode,
-    DirectMode,
-    // todo
+    ImmediateMode,        //operand included in the instruction
+    RegisterMode,         // operates on CPU registers
+    RegisterIndirectMode, //addresses held in register pair(HL)
+    ImplicitMode,         // no operand needed
+    DirectMode,           // 16-bit memory address specified
 }
 
 #[cfg(test)]
