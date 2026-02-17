@@ -1,3 +1,7 @@
+mod opcodes;
+use opcodes::OPCODE_MODE;
+mod core;
+
 use bitflags::bitflags;
 
 // flags available in the 8085 cpu
@@ -15,6 +19,7 @@ bitflags! {
 // needs change, i don't know where it starts
 const STACK_START: u16 = 0x00;
 
+#[allow(dead_code)]
 #[derive(Debug)]
 pub struct CPU {
     pub reg_a: u8,
@@ -30,7 +35,14 @@ pub struct CPU {
     pub mem: [u8; 0xFFFF],
 }
 
+impl Default for CPU {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 // implementations for cpu
+#[allow(unused)]
 impl CPU {
     pub fn new() -> Self {
         Self {
@@ -50,9 +62,25 @@ impl CPU {
     pub fn reset(&mut self) {
         *self = Self::new();
     }
+
+    pub fn interpret(&mut self, program: Vec<u8>) {
+        loop {
+            let opscode = program[self.program_counter as usize];
+            self.program_counter += 1;
+
+            match opscode {
+                0x60 => {
+                    self.reg_b = program[self.program_counter as usize];
+                    self.program_counter += 1;
+                }
+                0x00 => return,
+                _ => todo!(),
+            }
+        }
+    }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub enum AddressingMode {
     ImmediateMode,        //operand included in the instruction
     RegisterMode,         // operates on CPU registers
@@ -61,15 +89,31 @@ pub enum AddressingMode {
     DirectMode,           // 16-bit memory address specified
 }
 
+pub trait Mem {
+    fn mem_read(&self, addr: u16) -> u8;
+
+    fn mem_write(&mut self, addr: u16, data: u8);
+}
+
+impl Mem for CPU {
+    fn mem_read(&self, addr: u16) -> u8 {
+        self.mem[addr as usize]
+    }
+
+    fn mem_write(&mut self, addr: u16, data: u8) {
+        self.mem[addr as usize] = data;
+    }
+}
+
 #[cfg(test)]
 mod test {
-    use crate::CPU;
+    use super::*;
 
     #[test]
-    fn init_cpu() {
+    fn test_lda() {
         let mut cpu = CPU::new();
-        cpu.reg_a = 0;
-        let cpu_reg = cpu.reg_a;
-        assert_eq!(0, cpu_reg);
+        cpu.interpret(vec![0x60, 0x50, 0x00]);
+        dbg!(cpu.reg_b);
+        assert_eq!(cpu.reg_b, 0x50);
     }
 }
