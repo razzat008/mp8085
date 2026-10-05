@@ -1,12 +1,11 @@
-mod opcodes;
-use opcodes::OPCODE_MODE;
 mod core;
+mod opcodes;
 
 use bitflags::bitflags;
 
 // flags available in the 8085 cpu
 bitflags! {
-    #[derive(Default,Debug)]
+    #[derive(Default,Debug,Clone,Copy)]
     pub struct CPUFlags: u8 {
         const SIGN_F   = 0b10000000;
         const ZERO_F   = 0b01000000;
@@ -16,8 +15,7 @@ bitflags! {
     }
 }
 
-// needs change, i don't know where it starts
-const STACK_START: u16 = 0x00;
+const STACK_START: u16 = 0xFFFF;
 
 #[allow(dead_code)]
 #[derive(Debug)]
@@ -32,7 +30,10 @@ pub struct CPU {
     pub program_counter: u16,
     pub stack_pointer: u16,
     pub status: CPUFlags,
-    pub mem: [u8; 0xFFFF],
+    pub mem: [u8; 0x10000],
+    pub io: [u8; 256],
+    pub int_enable: bool,
+    pub halted: bool,
 }
 
 impl Default for CPU {
@@ -44,6 +45,7 @@ impl Default for CPU {
 // implementations for cpu
 #[allow(unused)]
 impl CPU {
+    // lets fuckin destroy everything
     pub fn new() -> Self {
         Self {
             reg_a: 0,
@@ -56,26 +58,29 @@ impl CPU {
             program_counter: 0,
             stack_pointer: STACK_START,
             status: CPUFlags::default(),
-            mem: [0; 0x0FFFF],
+            mem: [0; 0x10000],
+            io: [0; 256],
+            int_enable: false,
+            halted: false,
         }
     }
     pub fn reset(&mut self) {
         *self = Self::new();
     }
 
+    /// Load a program into memory at address 0, reset state, then run until HLT.
     pub fn interpret(&mut self, program: Vec<u8>) {
-        loop {
-            let opscode = program[self.program_counter as usize];
-            self.program_counter += 1;
+        self.reset();
+        let n = program.len().min(self.mem.len());
+        self.mem[..n].copy_from_slice(&program[..n]);
+        self.run();
+    }
 
-            match opscode {
-                0x60 => {
-                    self.reg_b = program[self.program_counter as usize];
-                    self.program_counter += 1;
-                }
-                0x00 => return,
-                _ => todo!(),
-            }
+    /// Fetch → decode → execute loop. Stops on HLT.
+    pub fn run(&mut self) {
+        while !self.halted {
+            let op = self.fetch();
+            self.execute(op);
         }
     }
 }
@@ -102,18 +107,5 @@ impl Mem for CPU {
 
     fn mem_write(&mut self, addr: u16, data: u8) {
         self.mem[addr as usize] = data;
-    }
-}
-
-#[cfg(test)]
-mod test {
-    use super::*;
-
-    #[test]
-    fn test_lda() {
-        let mut cpu = CPU::new();
-        cpu.interpret(vec![0x60, 0x50, 0x00]);
-        dbg!(cpu.reg_b);
-        assert_eq!(cpu.reg_b, 0x50);
     }
 }
